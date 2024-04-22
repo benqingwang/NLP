@@ -1,9 +1,18 @@
+# =============================================================================================
+# 1. Install Required Libraries
+# First, make sure you have the necessary libraries installed: pip install transformers torch
+# =============================================================================================
+
+# =============================================================================================
+# 2. Prepare the Dataset
+# Assuming you have a dataset in a simple format where each line is a text followed by its label 
+# (1 for 'financial reporting', 0 for 'not financial reporting'), you can create a custom dataset class.
+# =============================================================================================
 import torch
 from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer
 
-# Custom Dataset class
-class TextDataset(Dataset):
+class FinanceDataset(Dataset):
     def __init__(self, texts, labels, tokenizer, max_len=512):
         self.texts = texts
         self.labels = labels
@@ -16,38 +25,69 @@ class TextDataset(Dataset):
     def __getitem__(self, idx):
         text = self.texts[idx]
         label = self.labels[idx]
-        # Tokenize the text
-        inputs = self.tokenizer(text, max_length=self.max_len, padding='max_length', truncation=True, return_tensors='pt')
-        input_ids = inputs['input_ids'].squeeze()  # Remove batch dimension
-        attention_mask = inputs['attention_mask'].squeeze()  # Remove batch dimension
+        encoding = self.tokenizer(
+            text,
+            add_special_tokens=True,
+            max_length=self.max_len,
+            padding='max_length',
+            truncation=True,
+            return_attention_mask=True,
+            return_tensors='pt'
+        )
         return {
-            'input_ids': input_ids,
-            'attention_mask': attention_mask,
+            'input_ids': encoding['input_ids'].flatten(),
+            'attention_mask': encoding['attention_mask'].flatten(),
             'labels': torch.tensor(label, dtype=torch.long)
         }
 
-# Example usage
-texts = ["Hello, world!", "Machine learning is fun."]
-labels = [0, 1]  # Example binary labels for each text
+# =============================================================================================
+# 3. Load the Tokenizer and Initialize the Dataset
 tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-mpnet-base-v2")
+# =============================================================================================
 
-dataset = TextDataset(texts, labels, tokenizer)
-dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
+# Example data
+texts = ["This is about financial reporting.", "This is not related to finance.", ...]
+labels = [1, 0, ...]
 
-# Sample texts and labels
-texts = [
-    "This is a positive example.", "Another positive example.",
-    "Yet another positive example.", "Positive example again.", "Last positive example.",
-    "This is a negative example.", "Another negative example.",
-    "Yet another negative example.", "Negative example again.", "Last negative example."
-]
-labels = [1, 1, 1, 1, 1, 0, 0, 0, 0, 0]  # 1 for positive, 0 for negative
+# Create the dataset
+dataset = FinanceDataset(texts, labels, tokenizer)
+dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
 
-# Load the tokenizer
-tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-mpnet-base-v2")
+# =============================================================================================
+# 4. Load the Model and Modify for Classification
+# You'll need to modify the MPNet model for classification by adding a classification head. 
+# You can do this by using AutoModelForSequenceClassification.
+# =============================================================================================
+from transformers import AutoModelForSequenceClassification, AdamW
 
-# Create an instance of the dataset
-dataset = TextDataset(texts, labels, tokenizer)
+model = AutoModelForSequenceClassification.from_pretrained("sentence-transformers/all-mpnet-base-v2", num_labels=2)
 
-# Create a DataLoader
-dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
+# =============================================================================================
+# 5. Training Loop: Set up the training loop using PyTorch.
+# =============================================================================================
+optimizer = AdamW(model.parameters(), lr=5e-5)
+num_epochs = 3  # Define the number of epochs
+
+for epoch in range(num_epochs):
+    model.train()
+    for batch in dataloader:
+        inputs = {
+            'input_ids': batch['input_ids'],
+            'attention_mask': batch['attention_mask'],
+            'labels': batch['labels']
+        }
+        outputs = model(**inputs)
+        loss = outputs.loss
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+        print(f"Epoch {epoch+1}, Loss: {loss.item()}")
+
+# =============================================================================================
+# 6. Evaluation
+# To evaluate the model, ensure you separate some data as a test set and measure the accuracy of the model on this unseen data.
+# =============================================================================================
+
+# Switch model to evaluation mode
+model.eval()
+# Add code to calculate accuracy on the test set
