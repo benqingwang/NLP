@@ -33,3 +33,21 @@ tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-mpnet-base-
 
 dataset = TextDataset(texts, labels, tokenizer)
 dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
+
+# Sample texts and labels
+texts = [
+    "This is a positive example.", "Another positive example.",
+    "Yet another positive example.", "Positive example again.", "Last positive example.",
+    "This is a negative example.", "Another negative example.",
+    "Yet another negative example.", "Negative example again.", "Last negative example."
+]
+labels = [1, 1, 1, 1, 1, 0, 0, 0, 0, 0]  # 1 for positive, 0 for negative
+
+# Load the tokenizer
+tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-mpnet-base-v2")
+
+# Create an instance of the dataset
+dataset = TextDataset(texts, labels, tokenizer)
+
+# Create a DataLoader
+dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
