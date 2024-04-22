@@ -92,3 +92,9 @@ for epoch in range(num_epochs):
 # Switch model to evaluation mode
 model.eval()
 # Add code to calculate accuracy on the test set
+
+# =============================================================================================
+# 7. Save the trained model
+# =============================================================================================
+model_path_new = "/path/to/save/model"
+model.save_pretrained(model_path_new)
