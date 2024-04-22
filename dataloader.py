@@ -42,8 +42,9 @@ class FinanceDataset(Dataset):
 
 # =============================================================================================
 # 3. Load the Tokenizer and Initialize the Dataset
-tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-mpnet-base-v2")
 # =============================================================================================
+
+tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-mpnet-base-v2")
 
 # Example data
 texts = ["This is about financial reporting.", "This is not related to finance.", ...]
